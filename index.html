@@ -23,14 +23,14 @@
       align-items: center;
       margin: 0;
       box-sizing: border-box;
-      padding: 20px 10px 10px; /* キーボード下にほんの少し余白を持たせる */
+      padding: 20px 10px 10px; /* 下部に少しスペースを持たせる */
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
       transition: background-color 0.3s ease;
     }
 
-    /* パネル共通（完全に元のスタイル・位置） */
+    /* パネル共通（最初からある完全に元のスタイル・位置） */
     .panel {
       background-color: #f0f0f0;
       padding: 20px;
@@ -97,21 +97,20 @@
       box-shadow: none;
     }
 
-    /* フリックキーボード（画面下に固定し、ボタンの縦幅を広げ、下にほんの少し余白を持たせる） */
+    /* フリックキーボード（画面下に固定し、下部に少し余白を持たせる） */
     #flick-keyboard {
       width: 100%;
       max-width: 480px;
       background-color: #cccccc;
       border: 2px solid #000000;
       padding: 8px;
-      padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
       gap: 6px;
       z-index: 10;
       flex-shrink: 0;
-      margin-bottom: 0;
+      margin-bottom: calc(env(safe-area-inset-bottom) + 8px);
     }
     .flick-row {
       display: flex;
