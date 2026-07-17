@@ -201,7 +201,7 @@
 
     /* ==========================================
        演出・スクリーマレイヤー
-       ========================================== */
+       ================================---------- */
     #overlay-screen {
       display: none;
       inset: 0;
@@ -450,7 +450,7 @@
     drawDisplay();
   };
 
-  // ゲーム画面への遷移シーケンス（連打対策として冒頭でisInputAllowedを即座にfalseにする）
+  // ゲーム画面への遷移シーケンス
   const goTransition = () => {
     if (!isInputAllowed) return;
     isInputAllowed = false;
@@ -483,6 +483,7 @@
 
       tm.push(setTimeout(() => {
         elVolumeWarning.style.display = "none";
+        isInputAllowed = true; // ← 画面表示完了後に入力を再有効化
       }, 700));
 
     }, 700));
