@@ -216,7 +216,7 @@
 </head>
 <body>
 
-  <!-- 音量注意画面 (Volume Warning) / 物理的干渉を防ぐため初期表示、のちdisplay:noneで完全消去 -->
+  <!-- 音量注意画面 (Volume Warning) -->
   <div id="volume-warning" class="fade-transition" style="position:fixed; inset:0; background:#fff; opacity:0; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1.1rem; letter-spacing:1px; text-align:center; padding:20px; box-sizing:border-box; z-index:999;"></div>
 
   <!-- タイトル画面 (Title Stage) -->
@@ -291,7 +291,7 @@
   let isScared = false;
   let startTime = 0;
   let lastChar = null;
-  let tm = []; // タイマー管理用配列
+  let tm = [];
   let audioCtx = null;
   let isMobile = false;
 
@@ -319,6 +319,23 @@
     } catch (e) {
       console.warn("Audio Context Init Failed", e);
     }
+  };
+
+  // 全画面要求（絶対にクラッシュしない堅牢な実行判定）
+  const requestFullScreen = () => {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) return; // iOSは全画面API非対応のため即座に避ける
+    
+    try {
+      const de = document.documentElement;
+      if (!document.fullscreenElement) {
+        if (de.requestFullscreen) {
+          de.requestFullscreen().catch((err) => {
+            console.warn("Fullscreen request rejected", err);
+          });
+        }
+      }
+    } catch (err) {}
   };
 
   // 濁点キーの連動
@@ -390,17 +407,16 @@
     drawDisplay();
   };
 
-  // 「寂静シーケンス」本編遷移アニメーション（タップ後の処理）
+  // 「寂静シーケンス」本編遷移（0.7sベース・全画面安定化）
   const goTransition = () => {
-    // 1. Androidで何より優先すべきはサウンドリソースの「直タップ時アクティベート」
-    initAudio();
+    initAudio(); // タップ直後に最速で音声有効化
 
-    // タイトルステージを非表示にし、ゲームをリセット
+    // タイトルステージを非表示
     elTitleStage.style.transition = "none";
     elTitleStage.style.opacity = "0";
     elTitleStage.style.display = "none";
 
-    // ホワイトアウト開始（一瞬で白にする）
+    // ホワイトアウト開始（一瞬で純白表示）
     elVolumeWarning.style.display = "flex";
     elVolumeWarning.style.transition = "none";
     elVolumeWarning.style.opacity = "1";
@@ -421,9 +437,10 @@
       elMainContest.style.opacity = "1";
       elFlickKeyboard.style.opacity = "1";
 
-      // アニメーション完了後に音量警告レイヤーを物理的に消去して指を通す
+      // 画面のトランジションが100%完全に終了した「このタイミング」で安全に全画面要求を行う
       tm.push(setTimeout(() => {
         elVolumeWarning.style.display = "none";
+        requestFullScreen(); // 競合が起きない静止タイミングで実行
       }, 700));
 
     }, 700));
@@ -631,7 +648,7 @@
     nextChar();
   };
 
-  // スピーカー咆哮
+  // 怖がらせ音声演出
   const playScreamSound = () => {
     try {
       initAudio();
@@ -716,7 +733,6 @@
         // 0.7s フェードアウト
         tm.push(setTimeout(() => {
           elVolumeWarning.textContent = "";
-          // 物理干渉を防ぐためここで音量警告レイヤーを完全非表示にする
           elVolumeWarning.style.display = "none";
 
           // さらに0.7s純白の静止をおいてからタイトルを表示
