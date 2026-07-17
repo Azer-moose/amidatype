@@ -124,7 +124,7 @@
 
     /* ==========================================
        ボタン
-       ========================================== */
+       ================================---------- */
     button {
       background-color: #e0e0e0;
       border: 2px solid #000000;
@@ -258,14 +258,14 @@
     }
 
     .fade-transition {
-      transition: opacity 0.7s ease;
+      transition: opacity 0.5s ease;
     }
   </style>
 </head>
 <body>
 
   <!-- 音量注意画面 -->
-  <div id="volume-warning" class="fade-transition" style="position:fixed; inset:0; background:#fff; opacity:0; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1.1rem; letter-spacing:1px; text-align:center; padding:20px; box-sizing:border-box; z-index:999;"></div>
+  <div id="volume-warning" class="fade-transition" style="position:fixed; inset:0; background:#fff; opacity:0; display:none; justify-content:center; align-items:center; font-weight:bold; font-size:1.1rem; letter-spacing:1px; text-align:center; padding:20px; box-sizing:border-box; z-index:999;"></div>
 
   <!-- タイトル画面 -->
   <div id="title-stage" class="panel fade-transition" style="display:none; opacity:0;">
@@ -428,7 +428,10 @@
     elScareImage.classList.remove('shake-animation');
 
     elMainContest.style.display = "block";
+    elMainContest.style.opacity = "1";
     elFlickKeyboard.style.display = isMobile ? "flex" : "none";
+    elFlickKeyboard.style.opacity = "1";
+
     elModeDesc.textContent = isMobile ? "フリック入力専用" : "キーボード入力専用";
     elResultStatus.textContent = isMobile ? "「あ」をフリックまたはタップして開始" : "「a」キーを入力して開始";
     elResultStatus.style.color = "#000000";
@@ -450,7 +453,7 @@
     drawDisplay();
   };
 
-  // ゲーム画面への遷移シーケンス
+  // ゲーム画面への遷移シーケンス（連打防止・確実な状態復帰）
   const goTransition = () => {
     if (!isInputAllowed) return;
     isInputAllowed = false;
@@ -458,35 +461,13 @@
     initAudio();
     requestFullScreen();
 
-    elTitleStage.style.transition = "none";
     elTitleStage.style.opacity = "0";
-    elTitleStage.style.display = "none";
 
-    elVolumeWarning.style.display = "flex";
-    elVolumeWarning.style.transition = "none";
-    elVolumeWarning.style.opacity = "1";
-
-    resetGame();
-    elMainContest.style.transition = "none";
-    elFlickKeyboard.style.transition = "none";
-    elMainContest.style.opacity = "0";
-    elFlickKeyboard.style.opacity = "0";
-
-    tm.push(setTimeout(() => {
-      elVolumeWarning.style.transition = "opacity 0.7s ease";
-      elVolumeWarning.style.opacity = "0";
-
-      elMainContest.style.transition = "opacity 0.7s ease";
-      elFlickKeyboard.style.transition = "opacity 0.7s ease";
-      elMainContest.style.opacity = "1";
-      elFlickKeyboard.style.opacity = "1";
-
-      tm.push(setTimeout(() => {
-        elVolumeWarning.style.display = "none";
-        isInputAllowed = true; // ← 画面表示完了後に入力を再有効化
-      }, 700));
-
-    }, 700));
+    setTimeout(() => {
+      elTitleStage.style.display = "none";
+      resetGame();
+      isInputAllowed = true;
+    }, 400);
   };
 
   elTitleStage.addEventListener('click', (e) => {
@@ -768,34 +749,11 @@
     checkDevice();
     buildFlickKeyboard();
 
-    tm.push(setTimeout(() => {
-      elVolumeWarning.textContent = "このゲームは音量ありでプレイしてください。";
-      elVolumeWarning.style.opacity = "1";
-
-      tm.push(setTimeout(() => {
-        elVolumeWarning.style.opacity = "0";
-
-        tm.push(setTimeout(() => {
-          elVolumeWarning.textContent = "";
-          elVolumeWarning.style.display = "none";
-
-          tm.push(setTimeout(() => {
-            elTitleStage.style.display = "block";
-            tm.push(setTimeout(() => {
-              elTitleStage.style.opacity = "1";
-              
-              tm.push(setTimeout(() => {
-                isInputAllowed = true;
-              }, 700));
-              
-            }, 50));
-          }, 700));
-
-        }, 700));
-
-      }, 1800));
-
-    }, 600));
+    elTitleStage.style.display = "block";
+    setTimeout(() => {
+      elTitleStage.style.opacity = "1";
+      isInputAllowed = true;
+    }, 100);
   };
 
   window.addEventListener('DOMContentLoaded', runLaunchSequence);
