@@ -124,7 +124,7 @@
 
     /* ==========================================
        ボタン
-       ================================---------- */
+       ========================================== */
     button {
       background-color: #e0e0e0;
       border: 2px solid #000000;
@@ -201,7 +201,7 @@
 
     /* ==========================================
        演出・スクリーマレイヤー
-       ================================---------- */
+       ========================================== */
     #overlay-screen {
       display: none;
       inset: 0;
@@ -258,7 +258,7 @@
     }
 
     .fade-transition {
-      transition: opacity 0.5s ease;
+      transition: opacity 0.7s ease;
     }
   </style>
 </head>
@@ -453,7 +453,7 @@
     drawDisplay();
   };
 
-  // ゲーム画面への遷移シーケンス（連打防止・確実な状態復帰）
+  // ゲーム画面への遷移シーケンス（連打防止対応）
   const goTransition = () => {
     if (!isInputAllowed) return;
     isInputAllowed = false;
@@ -461,13 +461,17 @@
     initAudio();
     requestFullScreen();
 
+    elTitleStage.style.transition = "none";
     elTitleStage.style.opacity = "0";
+    elTitleStage.style.display = "none";
 
-    setTimeout(() => {
-      elTitleStage.style.display = "none";
-      resetGame();
-      isInputAllowed = true;
-    }, 400);
+    resetGame();
+    elMainContest.style.transition = "opacity 0.7s ease";
+    elFlickKeyboard.style.transition = "opacity 0.7s ease";
+    elMainContest.style.opacity = "1";
+    elFlickKeyboard.style.opacity = "1";
+
+    isInputAllowed = true;
   };
 
   elTitleStage.addEventListener('click', (e) => {
@@ -743,17 +747,31 @@
     });
   };
 
-  // 起動時の初期化シーケンス
+  // 起動時の初期化シーケンス（音量注意画面を挟む）
   const runLaunchSequence = () => {
     isInputAllowed = false;
     checkDevice();
     buildFlickKeyboard();
 
-    elTitleStage.style.display = "block";
-    setTimeout(() => {
-      elTitleStage.style.opacity = "1";
-      isInputAllowed = true;
-    }, 100);
+    elVolumeWarning.textContent = "このゲームは音量ありでプレイしてください。";
+    elVolumeWarning.style.display = "flex";
+    elVolumeWarning.style.opacity = "1";
+
+    tm.push(setTimeout(() => {
+      elVolumeWarning.style.opacity = "0";
+
+      tm.push(setTimeout(() => {
+        elVolumeWarning.style.display = "none";
+        elTitleStage.style.display = "block";
+
+        tm.push(setTimeout(() => {
+          elTitleStage.style.opacity = "1";
+          isInputAllowed = true;
+        }, 50));
+
+      }, 700));
+
+    }, 2000));
   };
 
   window.addEventListener('DOMContentLoaded', runLaunchSequence);
