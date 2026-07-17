@@ -5,7 +5,6 @@ x=0,st=0,fn=0,sc=0,T=0,p=null,tm=[],A=null,I=false;
 const C=()=>{I=/iphone|ipad|ipod|android/i.test(navigator.userAgent);ta.textContent=I?"画面をタップしてください":"スペースキーを入力してください"};
 const init=()=>{try{if(!A)A=new(window.AudioContext||webkitAudioContext)();if(A&&A.state==='suspended')A.resume()}catch(e){}};
 
-// 各種ブラウザの全画面表示に対応できるようにプレフィックスの網羅性を強化
 const req=()=>{
   try{
     const e=document.documentElement;
@@ -18,7 +17,7 @@ const req=()=>{
 
 const upd=()=>{const isY=['や','ゆ','よ'].includes(p);if(window.dc)dc.textContent=isY?'小':'゛';K.daku[0]=isY?'小':'゛';K.daku[2]=isY?'小':'゜';K.daku[4]=isY?'小':'゛';};
 const dr=()=>{const arr=[...(I?qJ:qE)];rd.innerHTML=arr.map((c,i)=>`<span class="${i<x?'p':'u'}">${c}</span>`).join('')};
-const R=()=>{C();x=st=fn=sc=0;T=p=null;if(I)upd();tm.forEach(clearTimeout);tm=[];m.textContent="";z.style.display=g.style.display=e.style.display="none";z.style.backgroundColor="#fff";m.style.color="#000";g.classList.remove('sa');mc.style.display="block";fk.style.display=I?"flex":"none";md.textContent=I?"フリック入力専用":"キーボード入力専用";rs.textContent=I?"「あ」をフリックまたはタップして開始":"「a」キーを入力して開始";rs.style.color="#000";rc.innerHTML=I?'<button id="rbn">リセット</button>':'<div style="font-size:0.8rem;color:#666;font-weight:bold;margin-top:10px;">[Space] キーを押してリセット</div>';
+const R=()=>{C();x=st=fn=sc=0;T=p=null;if(I)upd();tm.forEach(clearTimeout);tm=[];m.textContent="";z.style.display=g.style.display=e.style.display="none";z.style.backgroundColor="#fff";m.style.color="#000";g.classList.remove('sa');mc.style.display="block";fk.style.display=I?"flex":"none";md.textContent=I?"フリック入力専用":"キーボード入力専用";rs.textContent=I?"「あ」をフリックまたはタップして開始":"「a」キーを入力して開始";rs.style.color="#000";rc.innerHTML=I?'<button id="rbn">リreset</button>':'<div style="font-size:0.8rem;color:#666;font-weight:bold;margin-top:10px;">[Space] キーを押してリセット</div>';
 if(I){const btn=document.getElementById('rbn');if(btn)btn.addEventListener('click',R);}dr()};
 
 const GO=()=>{
@@ -45,25 +44,21 @@ const GO=()=>{
   },50);
 };
 
-// ブラウザの「ユーザー操作認定」を100%通過させるため、clickに統一して安定化
+// iPhoneでも確実にタップを拾えるよう、要素(ts)に対して直接clickとtouchstartを紐付け
 const mainStart=(ev)=>{
-  if(ts.style.display!=="none"&&ts.style.opacity!=="0"){
-    ev.preventDefault();
-    window.removeEventListener('click',mainStart);
-    GO();
-  }
+  ev.preventDefault();
+  // 発火した瞬間に両方のイベントを解除して二重発火（フリーズ）を完全防止
+  ['click','touchstart'].forEach(e=>ts.removeEventListener(e,mainStart));
+  GO();
 };
-window.addEventListener('click',mainStart);
-
-const fin=()=>{fn=1;let d=((new Date()-T)/1000).toFixed(2);rs.innerHTML=`<b>クリア！ タイム: ${d}秒</b><br><span style="font-size:0.8rem">${d<1?"1秒未満…！？人間業ではありません。":d<3?"神速のタイパーです！素晴らしい。":d<5.5?"なかなかの腕前ですね。":"もう少し速く打てそうです。"}</span>`};
-const handle=(c)=>{if(sc||fn)return;init();req();if(!st){if((I&&c==="あ")||(!I&&c==="a")){st=1;T=new Date();x=1;rs.textContent="計測中...";dr()}return}const q=I?qJ:qE;let t=q[x];if(I){if(["゛","゜","小"].includes(c)){if(!p){err();return}let cb=c==="゛"?D[p]:c==="゜"?H[p]:S[p];p=null;upd();if(cb===t){x++;dr();if(x===q.length)fin()}else err();return}if(c===t){p=null;upd();x++;dr();if(x===q.length)fin()}else if(D[c]===t||H[c]===t||S[c]===t){p=c;upd()}else{p=null;upd();err()}}else{if(c===t){x++;dr();if(x===q.length)fin()}else err()}};
+['click','touchstart'].forEach(ev=>ts.addEventListener(ev,mainStart,{passive:false}));
 
 onkeydown=ev=>{
   if(ev.repeat||ev.ctrlKey||ev.metaKey||ev.altKey||ev.isComposing||ev.key==="Process")return;
   if(ts.style.display!=="none"&&ts.style.opacity!=="0"){
     if(!I&&ev.code==="Space"){
       ev.preventDefault();
-      window.removeEventListener('click',mainStart);
+      ['click','touchstart'].forEach(e=>ts.removeEventListener(e,mainStart));
       GO();
     }
     return
