@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>とにかく早く打て</title>
   <style>
-    /* ベースレイアウト */
+    /* ==========================================
+       ベースレイアウト・画面固定
+       ================================---------- */
     html, body, #overlay-screen, #volume-warning {
       height: 100vh;
       height: 100dvh;
@@ -23,14 +25,16 @@
       align-items: center;
       margin: 0;
       box-sizing: border-box;
-      padding: 20px 10px 0px;
+      padding: 10px 10px 0px;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
       transition: background-color 0.3s ease;
     }
 
-    /* パネル共通（最初からある完全に元のスタイル・位置） */
+    /* ==========================================
+       パネル共通（お題・タイトル画面）
+       ================================---------- */
     .panel {
       background-color: #f0f0f0;
       padding: 20px;
@@ -81,7 +85,9 @@
       line-height: 1.4;
     }
 
-    /* ボタン・リセット */
+    /* ==========================================
+       ボタン
+       ================================---------- */
     button {
       background-color: #e0e0e0;
       border: 2px solid #000000;
@@ -97,7 +103,9 @@
       box-shadow: none;
     }
 
-    /* フリックキーボード（画面下に固定し、ボタンの縦幅を広げ、下の余白はなし） */
+    /* ==========================================
+       フリックキーボード（画面下部固定・縦幅拡大・下余白なし）
+       ================================---------- */
     #flick-keyboard {
       width: 100%;
       max-width: 480px;
@@ -123,7 +131,7 @@
       flex: 1;
       background-color: #fdfdfd;
       border: 2px solid #000000;
-      height: 64px; /* ボタンの縦幅を広くした状態 */
+      height: 64px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -154,7 +162,9 @@
     .b { bottom: 3px; }
     .l { left: 6px; top: 50%; transform: translateY(-50%); }
 
-    /* 演出・スクリーマレイヤー */
+    /* ==========================================
+       演出・スクリーマレイヤー
+       ================================---------- */
     #overlay-screen {
       display: none;
       inset: 0;
@@ -210,7 +220,6 @@
       5%, 10%, 15%, 20%, 25%, 30%, 35%, 40%, 45%, 50%, 55%, 60%, 65%, 70%, 75%, 80%, 85%, 90%, 95%, 99% { transform: translate(-50%, -50%) scale(1.15) translate(18px, 18px); }
     }
 
-    /* 寂静フェード用ユーティリティ */
     .fade-transition {
       transition: opacity 0.7s ease;
     }
@@ -218,17 +227,17 @@
 </head>
 <body>
 
-  <!-- 音量注意画面 (Volume Warning) -->
+  <!-- 音量注意画面 -->
   <div id="volume-warning" class="fade-transition" style="position:fixed; inset:0; background:#fff; opacity:0; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1.1rem; letter-spacing:1px; text-align:center; padding:20px; box-sizing:border-box; z-index:999;"></div>
 
-  <!-- タイトル画面 (Title Stage) -->
+  <!-- タイトル画面 -->
   <div id="title-stage" class="panel fade-transition" style="display:none; opacity:0;">
     <h1>タイピングレース</h1>
     <div class="sub-title">～阿弥陀如来～</div>
     <div id="start-guide" class="status-text" style="margin-top:15px; font-weight:bold;"></div>
   </div>
 
-  <!-- メインゲーム画面 (Main Contest) -->
+  <!-- メインゲーム画面 -->
   <div id="main-contest" class="panel fade-transition" style="display:none; opacity:0; cursor:default;">
     <h1>とにかく早く打て</h1>
     <div class="sub-title">阿弥陀如来</div>
@@ -238,7 +247,7 @@
     <div id="reset-container"></div>
   </div>
 
-  <!-- フリックキーボードレイアウト -->
+  <!-- フリックキーボード -->
   <div id="flick-keyboard" class="fade-transition" style="display:none; opacity:0;"></div>
 
   <!-- 演出オーバーレイ -->
@@ -249,7 +258,7 @@
   </div>
 
 <script>
-  // DOMキャッシュ
+  // DOM要素のキャッシュ
   const elVolumeWarning = document.getElementById("volume-warning");
   const elTitleStage = document.getElementById("title-stage");
   const elStartGuide = document.getElementById("start-guide");
@@ -286,7 +295,7 @@
     daku: ['゛','小','゜','','゛']
   };
 
-  // ゲームステート
+  // ゲーム状態
   let currentIndex = 0;
   let isStarted = false;
   let isFinished = false;
@@ -304,7 +313,7 @@
     tm = [];
   };
 
-  // モバイル判定
+  // デバイス判定
   const checkDevice = () => {
     isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
     elStartGuide.textContent = isMobile ? "画面をタップしてください" : "スペースキーを入力してください";
@@ -324,24 +333,20 @@
     }
   };
 
-  // 全画面要求
+  // フルスクリーン要求
   const requestFullScreen = () => {
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     if (isIOS) return;
     
     try {
       const de = document.documentElement;
-      if (!document.fullscreenElement) {
-        if (de.requestFullscreen) {
-          de.requestFullscreen().catch((err) => {
-            console.warn("Fullscreen rejected", err);
-          });
-        }
+      if (!document.fullscreenElement && de.requestFullscreen) {
+        de.requestFullscreen().catch(() => {});
       }
     } catch (err) {}
   };
 
-  // 濁点キーの連動
+  // 濁点・小文字キーの連動ラベル更新
   const updateDakuonKeyLabel = () => {
     const isYRow = ['や','ゆ','よ'].includes(lastChar);
     const dcLabel = document.getElementById("dc");
@@ -353,7 +358,7 @@
     keyMap.daku[4] = isYRow ? '小' : '゛';
   };
 
-  // 問題描画
+  // 問題文の描画
   const drawDisplay = () => {
     const target = isMobile ? targetJapanese : targetEnglish;
     const chars = [...target];
@@ -385,14 +390,12 @@
     elMessageLabel.style.color = "#000000";
     elScareImage.classList.remove('shake-animation');
 
-    // 表示状態のクリーンアップ
     elMainContest.style.display = "block";
     elFlickKeyboard.style.display = isMobile ? "flex" : "none";
     elModeDesc.textContent = isMobile ? "フリック入力専用" : "キーボード入力専用";
     elResultStatus.textContent = isMobile ? "「あ」をフリックまたはタップして開始" : "「a」キーを入力して開始";
     elResultStatus.style.color = "#000000";
 
-    // リセットボタン設定
     elResetContainer.innerHTML = "";
     if (isMobile) {
       const resetBtn = document.createElement("button");
@@ -410,7 +413,7 @@
     drawDisplay();
   };
 
-  // 「寂静シーケンス」本編遷移
+  // ゲーム画面への遷移シーケンス
   const goTransition = () => {
     if (!isInputAllowed) return;
 
@@ -447,7 +450,6 @@
     }, 700));
   };
 
-  // タイトルのタップ開始判定
   elTitleStage.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -455,7 +457,7 @@
     goTransition();
   });
 
-  // クリア判定
+  // クリア処理
   const processFinish = () => {
     isFinished = true;
     const finalTime = ((new Date() - startTime) / 1000).toFixed(2);
@@ -472,7 +474,7 @@
     elResultStatus.innerHTML = `<b>クリア！ タイム: ${finalTime}秒</b><br><span style="font-size:0.8rem">${feedback}</span>`;
   };
 
-  // 入力文字の判定
+  // 入力文字の判定ロジック
   const handleInputChar = (inputChar) => {
     if (!isInputAllowed || isScared || isFinished) return;
 
@@ -540,7 +542,7 @@
     }
   };
 
-  // キーボード処理
+  // PCキーボード入力
   window.addEventListener('keydown', (ev) => {
     if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     
@@ -570,7 +572,7 @@
     handleInputChar(ev.key.toLowerCase());
   });
 
-  // フリックキー構築
+  // フリックキーボードの構築
   const buildFlickKeyboard = () => {
     const keys = [
       ['a', 'ka', 'sa'],
@@ -634,7 +636,7 @@
     });
   };
 
-  // スクリーマ演出のタイピング
+  // スクリーマ演出：タイプライター風テキスト表示
   const triggerTypewriter = (text, onComplete) => {
     elMessageLabel.textContent = "";
     let charIndex = 0;
@@ -653,7 +655,7 @@
     nextChar();
   };
 
-  // 怖がらせ音声演出
+  // 恐怖音声演出
   const playScreamSound = () => {
     try {
       initAudio();
@@ -690,7 +692,7 @@
     }
   };
 
-  // 演出発動
+  // ミス時の演出発動
   const triggerScreamer = () => {
     isScared = true;
     clearAllTimers();
@@ -721,7 +723,7 @@
     });
   };
 
-  // 起動時の寂静シーケンス実行
+  // 起動時の初期化シーケンス
   const runLaunchSequence = () => {
     isInputAllowed = false;
     checkDevice();
