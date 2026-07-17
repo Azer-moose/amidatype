@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>とにかく早く打て</title>
   <style>
     /* ベースレイアウト */
@@ -25,7 +25,7 @@
       box-sizing: border-box;
       padding: 10px 10px 20px;
       padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
-      -webkit-tap-highlight-color: transparent;
+      -webkit-tap-highlight-color: transparent; /* タップ時の青いハイライトを無効化 */
       user-select: none;
       -webkit-user-select: none;
       transition: background-color 0.3s ease;
@@ -331,15 +331,16 @@
     }
   };
 
-  // フルスクリーン要求
+  // フルスクリーン要求（スマホフリーズ防止のためiOSを除くAndroidの一部のみ許可する安全ロジック）
   const requestFullScreen = () => {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) return; // iOSではフルスクリーンを実行しない（クラッシュを絶対に避ける）
+    
     try {
       const de = document.documentElement;
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (!document.fullscreenElement) {
         if (de.requestFullscreen) {
           de.requestFullscreen().catch(() => {});
-        } else if (de.webkitRequestFullscreen) {
-          de.webkitRequestFullscreen();
         }
       }
     } catch (err) {}
@@ -402,7 +403,9 @@
       const resetBtn = document.createElement("button");
       resetBtn.id = "btn-reset";
       resetBtn.textContent = "リセット";
-      resetBtn.addEventListener('touchend', (e) => {
+      // スマホでは click イベントのみで安全に制御
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         resetGame();
       });
       elResetContainer.appendChild(resetBtn);
@@ -451,19 +454,18 @@
   };
 
   // イベント登録：タイトルタップ（スマホ・PC両対応、競合・ブロック防止設計）
-  const handleStartTrigger = () => {
+  const handleStartTrigger = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     // すでにタイトルが非表示・不活性の場合は動かさない
     if (elTitleStage.style.display === "none") return;
     goTransition();
   };
 
-  // スマホではタッチスタートで即応、PCはクリック
-  elTitleStage.addEventListener('touchstart', (e) => {
-    handleStartTrigger();
-  }, { passive: true });
-  elTitleStage.addEventListener('click', () => {
-    handleStartTrigger();
-  });
+  // タッチ・クリックの反応を最速かつ確実に「click」へ集約（iOS安全対策）
+  elTitleStage.addEventListener('click', handleStartTrigger);
 
   // タイピングクリア処理
   const processFinish = () => {
