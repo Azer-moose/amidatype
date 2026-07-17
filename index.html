@@ -3,7 +3,767 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>とにかく早く打て</title><!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>とにかく早く打て</title>
+  <style>
+    /* ベースレイアウト */
+    html, body, #overlay-screen, #volume-warning {
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0;
+      box-sizing: border-box;
+      padding: 20px 10px 10px; /* 下部に少しスペースを持たせる */
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background-color 0.3s ease;
+    }
+
+    /* パネル共通（最初からある完全に元のスタイル・位置） */
+    .panel {
+      background-color: #f0f0f0;
+      padding: 20px;
+      border: 2px solid #000000;
+      box-shadow: 4px 4px 0px #000000;
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
+      box-sizing: border-box;
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+    h1 {
+      font-size: 1.1rem;
+      margin: 0 0 10px;
+      letter-spacing: 2px;
+      font-weight: bold;
+    }
+    .sub-title {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+    .device-desc {
+      font-size: 0.8rem;
+      color: #666666;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .word-display {
+      font-size: 1.4rem;
+      font-family: monospace;
+      letter-spacing: 2px;
+      margin-bottom: 15px;
+      background-color: #ffffff;
+      padding: 10px;
+      border: 1px solid #000000;
+      word-break: break-all;
+    }
+    .passed-char { color: #888888; }
+    .upcoming-char { font-weight: bold; }
+    .status-text {
+      font-size: 0.8rem;
+      min-height: 30px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      line-height: 1.4;
+    }
+
+    /* ボタン・リセット */
+    button {
+      background-color: #e0e0e0;
+      border: 2px solid #000000;
+      padding: 8px 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      box-shadow: 2px 2px 0px #000000;
+      font-weight: bold;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    button:active {
+      transform: translate(2px, 2px);
+      box-shadow: none;
+    }
+
+    /* フリックキーボード（画面下に固定し、下部に少し余白を持たせる） */
+    #flick-keyboard {
+      width: 100%;
+      max-width: 480px;
+      background-color: #cccccc;
+      border: 2px solid #000000;
+      padding: 8px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+      flex-shrink: 0;
+      margin-bottom: calc(env(safe-area-inset-bottom) + 8px);
+    }
+    .flick-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+    .flick-key {
+      flex: 1;
+      background-color: #fdfdfd;
+      border: 2px solid #000000;
+      height: 64px; /* ボタンの縦幅を広くした状態 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.1rem;
+      position: relative;
+      cursor: pointer;
+      box-shadow: 2px 2px 0px #000000;
+      font-weight: bold;
+      box-sizing: border-box;
+    }
+    .flick-key:active, .flick-key.touched {
+      background-color: #000000;
+      color: #ffffff;
+      box-shadow: none;
+      transform: translate(2px, 2px);
+    }
+    .flick-key .guide {
+      position: absolute;
+      font-size: 0.6rem;
+      color: #555555;
+      pointer-events: none;
+    }
+    .flick-key:active .guide, .flick-key.touched .guide {
+      color: #aaaaaa;
+    }
+    .t { top: 3px; }
+    .r { right: 6px; top: 50%; transform: translateY(-50%); }
+    .b { bottom: 3px; }
+    .l { left: 6px; top: 50%; transform: translateY(-50%); }
+
+    /* 演出・スクリーマレイヤー */
+    #overlay-screen {
+      display: none;
+      inset: 0;
+      background-color: #ffffff;
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      transition: background-color 0.5s ease;
+    }
+    #error-label {
+      display: none;
+      color: #cc0000;
+      font-size: 15vw;
+      font-weight: bold;
+      letter-spacing: 10px;
+      margin-bottom: 10px;
+      z-index: 10001;
+      position: relative;
+    }
+    #message-label {
+      font-size: 1.6rem;
+      font-weight: bold;
+      letter-spacing: 2px;
+      min-height: 2.5rem;
+      z-index: 10001;
+      position: relative;
+      text-align: center;
+      padding: 0 20px;
+    }
+    #scare-image {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      max-width: none;
+      max-height: none;
+      object-fit: cover;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1.15);
+      z-index: 10000;
+      mix-blend-mode: screen;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+    }
+    .shake-animation {
+      animation: shake-effect 0.7s linear forwards;
+    }
+    @keyframes shake-effect {
+      0%, 100% { transform: translate(-50%, -50%) scale(1.15) translate(0, 0); }
+      2.5%, 7.5%, 12.5%, 17.5%, 22.5%, 27.5%, 32.5%, 37.5%, 42.5%, 47.5%, 52.5%, 57.5%, 62.5%, 67.5%, 72.5%, 77.5%, 82.5%, 87.5%, 92.5%, 97.5% { transform: translate(-50%, -50%) scale(1.15) translate(-18px, -18px); }
+      5%, 10%, 15%, 20%, 25%, 30%, 35%, 40%, 45%, 50%, 55%, 60%, 65%, 70%, 75%, 80%, 85%, 90%, 95%, 99% { transform: translate(-50%, -50%) scale(1.15) translate(18px, 18px); }
+    }
+
+    /* 寂静フェード用ユーティリティ */
+    .fade-transition {
+      transition: opacity 0.7s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 音量注意画面 (Volume Warning) -->
+  <div id="volume-warning" class="fade-transition" style="position:fixed; inset:0; background:#fff; opacity:0; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1.1rem; letter-spacing:1px; text-align:center; padding:20px; box-sizing:border-box; z-index:999;"></div>
+
+  <!-- タイトル画面 (Title Stage) -->
+  <div id="title-stage" class="panel fade-transition" style="display:none; opacity:0;">
+    <h1>タイピングレース</h1>
+    <div class="sub-title">～阿弥陀如来～</div>
+    <div id="start-guide" class="status-text" style="margin-top:15px; font-weight:bold;"></div>
+  </div>
+
+  <!-- メインゲーム画面 (Main Contest) -->
+  <div id="main-contest" class="panel fade-transition" style="display:none; opacity:0; cursor:default;">
+    <h1>とにかく早く打て</h1>
+    <div class="sub-title">阿弥陀如来</div>
+    <div id="mode-desc" class="device-desc"></div>
+    <div id="word-display-area" class="word-display"></div>
+    <div id="result-status" class="status-text"></div>
+    <div id="reset-container"></div>
+  </div>
+
+  <!-- フリックキーボードレイアウト -->
+  <div id="flick-keyboard" class="fade-transition" style="display:none; opacity:0;"></div>
+
+  <!-- 演出オーバーレイ -->
+  <div id="overlay-screen">
+    <div id="error-label">警告</div>
+    <div id="message-label"></div>
+    <img src="https://stickershop.line-scdn.net/stickershop/v1/product/27284783/LINEStorePC/main.png" alt="" id="scare-image">
+  </div>
+
+<script>
+  // DOMキャッシュ
+  const elVolumeWarning = document.getElementById("volume-warning");
+  const elTitleStage = document.getElementById("title-stage");
+  const elStartGuide = document.getElementById("start-guide");
+  const elMainContest = document.getElementById("main-contest");
+  const elModeDesc = document.getElementById("mode-desc");
+  const elWordDisplayArea = document.getElementById("word-display-area");
+  const elResultStatus = document.getElementById("result-status");
+  const elResetContainer = document.getElementById("reset-container");
+  const elFlickKeyboard = document.getElementById("flick-keyboard");
+  const elOverlayScreen = document.getElementById("overlay-screen");
+  const elErrorLabel = document.getElementById("error-label");
+  const elMessageLabel = document.getElementById("message-label");
+  const elScareImage = document.getElementById("scare-image");
+
+  // 出題・マッピングデータ
+  const targetJapanese = "あみだにょらい";
+  const targetEnglish = "amidanyorai";
+
+  const dakuonMap = {"か":"が","き":"ぎ","く":"ぐ","け":"げ","こ":"ご","さ":"ざ","し":"じ","す":"ず","せ":"ぜ","そ":"ぞ","た":"だ","ち":"ぢ","つ":"づ","て":"で","と":"ど","は":"ば","ひ":"び","ふ":"ぶ","へ":"べ","ほ":"ぼ"};
+  const handakuonMap = {"は":"ぱ","ひ":"ぴ","ふ":"ぷ","へ":"ぺ","ほ":"ぼ"};
+  const smallCharMap = {"つ":"っ","あ":"ぁ","い":"ぃ","う":"ぅ","え":"ぇ","お":"ぉ","や":"ゃ","ゆ":"ゅ","よ":"ょ","わ":"ゎ"};
+
+  const keyMap = {
+    a:    ['あ','う','え','お','い'],
+    ka:   ['か','く','け','こ','き'],
+    sa:   ['さ','す','せ','そ','し'],
+    ta:   ['た','つ','て','と','ち'],
+    na:   ['な','ぬ','ね','の','に'],
+    ha:   ['は','ふ','へ','ほ','ひ'],
+    ma:   ['ま','む','め','も','み'],
+    ya:   ['や','ゆ','」','よ','「'],
+    ra:   ['ら','る','れ','ろ','り'],
+    wa:   ['わ','ん','ー','','を'],
+    daku: ['゛','小','゜','','゛']
+  };
+
+  // ゲームステート
+  let currentIndex = 0;
+  let isStarted = false;
+  let isFinished = false;
+  let isScared = false;
+  let startTime = 0;
+  let lastChar = null;
+  let tm = [];
+  let audioCtx = null;
+  let isMobile = false;
+  let isInputAllowed = false;
+
+  // タイマークリア処理
+  const clearAllTimers = () => {
+    tm.forEach(clearTimeout);
+    tm = [];
+  };
+
+  // モバイル判定
+  const checkDevice = () => {
+    isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+    elStartGuide.textContent = isMobile ? "画面をタップしてください" : "スペースキーを入力してください";
+  };
+
+  // オーディオ初期化
+  const initAudio = () => {
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    } catch (e) {
+      console.warn("Audio Context Init Failed", e);
+    }
+  };
+
+  // 全画面要求
+  const requestFullScreen = () => {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) return;
+    
+    try {
+      const de = document.documentElement;
+      if (!document.fullscreenElement) {
+        if (de.requestFullscreen) {
+          de.requestFullscreen().catch((err) => {
+            console.warn("Fullscreen rejected", err);
+          });
+        }
+      }
+    } catch (err) {}
+  };
+
+  // 濁点キーの連動
+  const updateDakuonKeyLabel = () => {
+    const isYRow = ['や','ゆ','よ'].includes(lastChar);
+    const dcLabel = document.getElementById("dc");
+    if (dcLabel) {
+      dcLabel.textContent = isYRow ? '小' : '゛';
+    }
+    keyMap.daku[0] = isYRow ? '小' : '゛';
+    keyMap.daku[2] = isYRow ? '小' : '゜';
+    keyMap.daku[4] = isYRow ? '小' : '゛';
+  };
+
+  // 問題描画
+  const drawDisplay = () => {
+    const target = isMobile ? targetJapanese : targetEnglish;
+    const chars = [...target];
+    elWordDisplayArea.innerHTML = chars.map((char, index) => {
+      const cls = index < currentIndex ? 'passed-char' : 'upcoming-char';
+      return `<span class="${cls}">${char}</span>`;
+    }).join('');
+  };
+
+  // ゲームリセット
+  const resetGame = () => {
+    checkDevice();
+    clearAllTimers();
+
+    currentIndex = 0;
+    isStarted = false;
+    isFinished = false;
+    isScared = false;
+    startTime = 0;
+    lastChar = null;
+
+    if (isMobile) updateDakuonKeyLabel();
+
+    elMessageLabel.textContent = "";
+    elOverlayScreen.style.display = "none";
+    elScareImage.style.display = "none";
+    elErrorLabel.style.display = "none";
+    elOverlayScreen.style.backgroundColor = "#ffffff";
+    elMessageLabel.style.color = "#000000";
+    elScareImage.classList.remove('shake-animation');
+
+    // 表示状態のクリーンアップ
+    elMainContest.style.display = "block";
+    elFlickKeyboard.style.display = isMobile ? "flex" : "none";
+    elModeDesc.textContent = isMobile ? "フリック入力専用" : "キーボード入力専用";
+    elResultStatus.textContent = isMobile ? "「あ」をフリックまたはタップして開始" : "「a」キーを入力して開始";
+    elResultStatus.style.color = "#000000";
+
+    // リセットボタン設定
+    elResetContainer.innerHTML = "";
+    if (isMobile) {
+      const resetBtn = document.createElement("button");
+      resetBtn.id = "btn-reset";
+      resetBtn.textContent = "リセット";
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetGame();
+      });
+      elResetContainer.appendChild(resetBtn);
+    } else {
+      elResetContainer.innerHTML = '<div style="font-size:0.8rem; color:#666666; font-weight:bold; margin-top:10px;">[Space] キーを押してリセット</div>';
+    }
+
+    drawDisplay();
+  };
+
+  // 「寂静シーケンス」本編遷移
+  const goTransition = () => {
+    if (!isInputAllowed) return;
+
+    initAudio();
+    requestFullScreen();
+
+    elTitleStage.style.transition = "none";
+    elTitleStage.style.opacity = "0";
+    elTitleStage.style.display = "none";
+
+    elVolumeWarning.style.display = "flex";
+    elVolumeWarning.style.transition = "none";
+    elVolumeWarning.style.opacity = "1";
+
+    resetGame();
+    elMainContest.style.transition = "none";
+    elFlickKeyboard.style.transition = "none";
+    elMainContest.style.opacity = "0";
+    elFlickKeyboard.style.opacity = "0";
+
+    tm.push(setTimeout(() => {
+      elVolumeWarning.style.transition = "opacity 0.7s ease";
+      elVolumeWarning.style.opacity = "0";
+
+      elMainContest.style.transition = "opacity 0.7s ease";
+      elFlickKeyboard.style.transition = "opacity 0.7s ease";
+      elMainContest.style.opacity = "1";
+      elFlickKeyboard.style.opacity = "1";
+
+      tm.push(setTimeout(() => {
+        elVolumeWarning.style.display = "none";
+      }, 700));
+
+    }, 700));
+  };
+
+  // タイトルのタップ開始判定
+  elTitleStage.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (elTitleStage.style.display === "none") return;
+    goTransition();
+  });
+
+  // クリア判定
+  const processFinish = () => {
+    isFinished = true;
+    const finalTime = ((new Date() - startTime) / 1000).toFixed(2);
+    let feedback = "";
+    if (finalTime < 1.00) {
+      feedback = "1秒未満…！？人間業ではありません。";
+    } else if (finalTime < 3.00) {
+      feedback = "神速のタイパーです！素晴らしい。";
+    } else if (finalTime < 5.50) {
+      feedback = "なかなかの腕前ですね。";
+    } else {
+      feedback = "もう少し速く打てそうです。";
+    }
+    elResultStatus.innerHTML = `<b>クリア！ タイム: ${finalTime}秒</b><br><span style="font-size:0.8rem">${feedback}</span>`;
+  };
+
+  // 入力文字の判定
+  const handleInputChar = (inputChar) => {
+    if (!isInputAllowed || isScared || isFinished) return;
+
+    if (!isStarted) {
+      const triggerChar = isMobile ? "あ" : "a";
+      if (inputChar === triggerChar) {
+        isStarted = true;
+        startTime = new Date();
+        currentIndex = 1;
+        elResultStatus.textContent = "計測中...";
+        drawDisplay();
+      }
+      return;
+    }
+
+    const currentTarget = isMobile ? targetJapanese : targetEnglish;
+    const requiredChar = currentTarget[currentIndex];
+
+    if (isMobile) {
+      if (["゛", "゜", "小"].includes(inputChar)) {
+        if (!lastChar) {
+          triggerScreamer();
+          return;
+        }
+        let convertedChar = null;
+        if (inputChar === "゛") convertedChar = dakuonMap[lastChar];
+        else if (inputChar === "゜") convertedChar = handakuonMap[lastChar];
+        else convertedChar = smallCharMap[lastChar];
+
+        lastChar = null;
+        updateDakuonKeyLabel();
+
+        if (convertedChar === requiredChar) {
+          currentIndex++;
+          drawDisplay();
+          if (currentIndex === currentTarget.length) processFinish();
+        } else {
+          triggerScreamer();
+        }
+        return;
+      }
+
+      if (inputChar === requiredChar) {
+        lastChar = null;
+        updateDakuonKeyLabel();
+        currentIndex++;
+        drawDisplay();
+        if (currentIndex === currentTarget.length) processFinish();
+      } else if (dakuonMap[inputChar] === requiredChar || handakuonMap[inputChar] === requiredChar || smallCharMap[inputChar] === requiredChar) {
+        lastChar = inputChar;
+        updateDakuonKeyLabel();
+      } else {
+        lastChar = null;
+        updateDakuonKeyLabel();
+        triggerScreamer();
+      }
+    } else {
+      if (inputChar === requiredChar) {
+        currentIndex++;
+        drawDisplay();
+        if (currentIndex === currentTarget.length) processFinish();
+      } else {
+        triggerScreamer();
+      }
+    }
+  };
+
+  // キーボード処理
+  window.addEventListener('keydown', (ev) => {
+    if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    
+    if (!isInputAllowed) {
+      ev.preventDefault();
+      return;
+    }
+
+    if (elTitleStage.style.display !== "none" && elTitleStage.style.opacity !== "0") {
+      if (!isMobile && ev.code === "Space") {
+        ev.preventDefault();
+        goTransition();
+      }
+      return;
+    }
+
+    if (isMobile) return;
+
+    if (ev.code === "Space") {
+      if (!isScared) {
+        ev.preventDefault();
+        resetGame();
+      }
+      return;
+    }
+
+    handleInputChar(ev.key.toLowerCase());
+  });
+
+  // フリックキー構築
+  const buildFlickKeyboard = () => {
+    const keys = [
+      ['a', 'ka', 'sa'],
+      ['ta', 'na', 'ha'],
+      ['ma', 'ya', 'ra'],
+      ['daku', 'wa', '']
+    ];
+
+    elFlickKeyboard.innerHTML = keys.map(row => {
+      return `<div class="flick-row">${
+        row.map(k => {
+          if (!k) return '<div class="flick-key" style="visibility:hidden;"></div>';
+          const details = keyMap[k];
+          const hasDakuId = k === 'daku' ? ' id="dc"' : '';
+          return `
+            <div class="flick-key" data-key="${k}">
+              <span${hasDakuId}>${details[0]}</span>
+              ${['t', 'r', 'b', 'l'].map((pos, idx) => details[idx + 1] ? `<span class="guide ${pos}">${details[idx + 1]}</span>` : '').join('')}
+            </div>
+          `;
+        }).join('')
+      }</div>`;
+    }).join('');
+
+    document.querySelectorAll('.flick-key').forEach(el => {
+      let startX = 0;
+      let startY = 0;
+      const keyId = el.getAttribute('data-key');
+      if (!keyId) return;
+
+      el.addEventListener('touchstart', (ev) => {
+        if (!isInputAllowed || isScared || isFinished) return;
+        const touch = ev.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        el.classList.add('touched');
+      }, { passive: true });
+
+      el.addEventListener('touchend', (ev) => {
+        if (!isInputAllowed || isScared || isFinished) return;
+        el.classList.remove('touched');
+
+        const change = ev.changedTouches[0];
+        const diffX = change.clientX - startX;
+        const diffY = change.clientY - startY;
+        let directionIndex = 0;
+
+        if (Math.abs(diffX) > 20 || Math.abs(diffY) > 20) {
+          if (Math.abs(diffX) > Math.abs(diffY)) {
+            directionIndex = diffX > 0 ? 2 : 4;
+          } else {
+            directionIndex = diffY > 0 ? 3 : 1;
+          }
+        }
+
+        const mappedChar = keyMap[keyId][directionIndex];
+        if (mappedChar) {
+          handleInputChar(mappedChar);
+        }
+      }, { passive: true });
+    });
+  };
+
+  // スクリーマ演出のタイピング
+  const triggerTypewriter = (text, onComplete) => {
+    elMessageLabel.textContent = "";
+    let charIndex = 0;
+    
+    function nextChar() {
+      if (charIndex < text.length) {
+        elMessageLabel.textContent += text.charAt(charIndex++);
+        tm.push(setTimeout(nextChar, 120));
+      } else {
+        tm.push(setTimeout(() => {
+          elMessageLabel.textContent = "";
+          if (onComplete) onComplete();
+        }, 2000));
+      }
+    }
+    nextChar();
+  };
+
+  // 怖がらせ音声演出
+  const playScreamSound = () => {
+    try {
+      initAudio();
+      const now = audioCtx.currentTime;
+
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(90, now);
+      osc.frequency.exponentialRampToValueAtTime(20, now + 3);
+      gainNode.gain.setValueAtTime(2.0, now);
+      gainNode.gain.linearRampToValueAtTime(0.0, now + 3);
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(now + 3);
+
+      const bufferSize = audioCtx.sampleRate * 2;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const outputData = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        outputData[i] = Math.random() * 2 - 1;
+      }
+      const noiseSource = audioCtx.createBufferSource();
+      const noiseGain = audioCtx.createGain();
+      noiseSource.buffer = noiseBuffer;
+      noiseGain.gain.setValueAtTime(0.8, now);
+      noiseGain.gain.linearRampToValueAtTime(0.0, now + 2);
+      noiseSource.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+      noiseSource.start();
+    } catch (e) {
+      console.warn("Audio Error", e);
+    }
+  };
+
+  // 演出発動
+  const triggerScreamer = () => {
+    isScared = true;
+    clearAllTimers();
+
+    elFlickKeyboard.style.display = "none";
+    elMainContest.style.display = "none";
+
+    elOverlayScreen.style.display = "flex";
+    elErrorLabel.style.display = "block";
+    elOverlayScreen.style.backgroundColor = "#ffffff";
+    elMessageLabel.style.color = "#000000";
+
+    triggerTypewriter("位置情報の漏洩を確認", () => {
+      triggerTypewriter("至急対応してください", () => {
+        elErrorLabel.style.display = "none";
+
+        tm.push(setTimeout(() => {
+          elOverlayScreen.style.backgroundColor = "#000000";
+          playScreamSound();
+          elScareImage.style.display = "block";
+          elScareImage.classList.add('shake-animation');
+
+          tm.push(setTimeout(() => {
+            resetGame();
+          }, 6000));
+        }, 2500));
+      });
+    });
+  };
+
+  // 起動時の寂静シーケンス実行
+  const runLaunchSequence = () => {
+    isInputAllowed = false;
+    checkDevice();
+    buildFlickKeyboard();
+
+    tm.push(setTimeout(() => {
+      elVolumeWarning.textContent = "このゲームは音量ありでプレイしてください。";
+      elVolumeWarning.style.opacity = "1";
+
+      tm.push(setTimeout(() => {
+        elVolumeWarning.style.opacity = "0";
+
+        tm.push(setTimeout(() => {
+          elVolumeWarning.textContent = "";
+          elVolumeWarning.style.display = "none";
+
+          tm.push(setTimeout(() => {
+            elTitleStage.style.display = "block";
+            tm.push(setTimeout(() => {
+              elTitleStage.style.opacity = "1";
+              
+              tm.push(setTimeout(() => {
+                isInputAllowed = true;
+              }, 700));
+              
+            }, 50));
+          }, 700));
+
+        }, 700));
+
+      }, 1800));
+
+    }, 600));
+  };
+
+  window.addEventListener('DOMContentLoaded', runLaunchSequence);
+</script>
+</body>
+</html>
   <style>
     /* ベースレイアウト */
     html, body, #overlay-screen, #volume-warning {
