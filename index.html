@@ -7,7 +7,7 @@
   <style>
     /* ==========================================
        ベースレイアウト・画面固定
-       ================================---------- */
+       ========================================== */
     html, body, #overlay-screen, #volume-warning {
       height: 100vh;
       height: 100dvh;
@@ -34,7 +34,7 @@
 
     /* ==========================================
        パネル共通（お題・タイトル画面）
-       ================================---------- */
+       ========================================== */
     .panel {
       background-color: #f0f0f0;
       padding: 20px;
@@ -86,8 +86,45 @@
     }
 
     /* ==========================================
+       スマホ向け調整（お題画面を横長にし、余白・文字を小さく）
+       ========================================== */
+    @media (max-width: 600px) {
+      .panel {
+        padding: 10px 12px;
+        width: 98%;
+        max-width: 100%;
+      }
+      .panel h1 {
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+      }
+      .panel .sub-title {
+        font-size: 1.35rem;
+        margin-bottom: 6px;
+      }
+      .panel .device-desc {
+        font-size: 0.7rem;
+        margin-bottom: 6px;
+      }
+      .panel .word-display {
+        font-size: 1.2rem;
+        padding: 6px;
+        margin-bottom: 8px;
+      }
+      .panel .status-text {
+        font-size: 0.75rem;
+        min-height: 22px;
+        margin-bottom: 6px;
+      }
+      .panel button {
+        padding: 6px 14px;
+        font-size: 0.7rem;
+      }
+    }
+
+    /* ==========================================
        ボタン
-       ================================---------- */
+       ========================================== */
     button {
       background-color: #e0e0e0;
       border: 2px solid #000000;
@@ -104,8 +141,8 @@
     }
 
     /* ==========================================
-       フリックキーボード（画面下部固定・縦幅拡大・下余白なし）
-       ================================---------- */
+       フリックキーボード（画面下部固定・下に10pxの余白）
+       ========================================== */
     #flick-keyboard {
       width: 100%;
       max-width: 480px;
@@ -113,7 +150,7 @@
       border: 2px solid #000000;
       border-bottom: none;
       padding: 8px;
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
@@ -164,7 +201,7 @@
 
     /* ==========================================
        演出・スクリーマレイヤー
-       ================================---------- */
+       ========================================== */
     #overlay-screen {
       display: none;
       inset: 0;
@@ -413,9 +450,10 @@
     drawDisplay();
   };
 
-  // ゲーム画面への遷移シーケンス
+  // ゲーム画面への遷移シーケンス（連打対策として冒頭でisInputAllowedを即座にfalseにする）
   const goTransition = () => {
     if (!isInputAllowed) return;
+    isInputAllowed = false;
 
     initAudio();
     requestFullScreen();
@@ -453,7 +491,7 @@
   elTitleStage.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (elTitleStage.style.display === "none") return;
+    if (!isInputAllowed || elTitleStage.style.display === "none") return;
     goTransition();
   });
 
