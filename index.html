@@ -23,14 +23,14 @@
       align-items: center;
       margin: 0;
       box-sizing: border-box;
-      padding: 10px 10px 0px; /* 下部のパディングをなくしてキーボードを完全に底面に密着 */
+      padding: 10px 10px 0px;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
       transition: background-color 0.3s ease;
     }
 
-    /* パネル共通（PC版では上下中央、スマホ版では上部寄せ・左右幅を広くコンパクトに） */
+    /* パネル共通（お題画面の位置を元のバランスに復元） */
     .panel {
       background-color: #f0f0f0;
       padding: 12px 16px;
@@ -40,17 +40,9 @@
       max-width: 500px;
       width: 95%;
       box-sizing: border-box;
-      margin-top: 10px;
+      margin-top: auto;
+      margin-bottom: auto;
     }
-
-    /* PC表示の時にお題を完全中央へ */
-    @media (min-width: 768px), (hover: hover) {
-      .panel {
-        margin-top: auto;
-        margin-bottom: auto;
-      }
-    }
-
     h1 {
       font-size: 1.0rem;
       margin: 0 0 6px;
@@ -105,15 +97,15 @@
       box-shadow: none;
     }
 
-    /* フリックキーボード（画面下部に完全に余白なく固定） */
+    /* フリックキーボード（画面下部にぴったり固定） */
     #flick-keyboard {
       width: 100%;
       max-width: 480px;
       background-color: #cccccc;
       border: 2px solid #000000;
-      border-bottom: none; /* 下側の枠線を消して画面端に完全に馴染ませる */
+      border-bottom: none;
       padding: 5px;
-      padding-bottom: env(safe-area-inset-bottom); /* ホームインジケーター領域のみ必要最小限に考慮 */
+      padding-bottom: env(safe-area-inset-bottom);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
