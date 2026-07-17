@@ -25,7 +25,7 @@
       box-sizing: border-box;
       padding: 10px 10px 20px;
       padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
-      -webkit-tap-highlight-color: transparent; /* タップ時の青いハイライトを無効化 */
+      -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
       transition: background-color 0.3s ease;
@@ -40,7 +40,7 @@
       text-align: center;
       max-width: 500px;
       width: 90%;
-      margin: auto; /* 上下左右完全に中央寄せ */
+      margin: auto;
       cursor: pointer;
       box-sizing: border-box;
     }
@@ -216,8 +216,8 @@
 </head>
 <body>
 
-  <!-- 音量注意画面 (Volume Warning) -->
-  <div id="volume-warning" class="fade-transition" style="position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1.1rem; letter-spacing:1px; text-align:center; padding:20px; box-sizing:border-box; z-index:999;"></div>
+  <!-- 音量注意画面 (Volume Warning) / 物理的干渉を防ぐため初期表示、のちdisplay:noneで完全消去 -->
+  <div id="volume-warning" class="fade-transition" style="position:fixed; inset:0; background:#fff; opacity:0; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:1.1rem; letter-spacing:1px; text-align:center; padding:20px; box-sizing:border-box; z-index:999;"></div>
 
   <!-- タイトル画面 (Title Stage) -->
   <div id="title-stage" class="panel fade-transition" style="display:none; opacity:0;">
@@ -291,24 +291,14 @@
   let isScared = false;
   let startTime = 0;
   let lastChar = null;
-  let activeTimers = [];
+  let tm = []; // タイマー管理用配列
   let audioCtx = null;
   let isMobile = false;
 
-  // タイマー登録ラッパー
-  const setManagedTimeout = (callback, delay) => {
-    const timerId = setTimeout(() => {
-      activeTimers = activeTimers.filter(id => id !== timerId);
-      callback();
-    }, delay);
-    activeTimers.push(timerId);
-    return timerId;
-  };
-
-  // 全タイマークリア
+  // タイマークリア処理
   const clearAllTimers = () => {
-    activeTimers.forEach(id => clearTimeout(id));
-    activeTimers = [];
+    tm.forEach(clearTimeout);
+    tm = [];
   };
 
   // モバイル判定
@@ -327,26 +317,11 @@
         audioCtx.resume();
       }
     } catch (e) {
-      console.warn("AudioContext init failed", e);
+      console.warn("Audio Context Init Failed", e);
     }
   };
 
-  // フルスクリーン要求（スマホフリーズ防止のためiOSを除くAndroidの一部のみ許可する安全ロジック）
-  const requestFullScreen = () => {
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if (isIOS) return; // iOSではフルスクリーンを実行しない（クラッシュを絶対に避ける）
-    
-    try {
-      const de = document.documentElement;
-      if (!document.fullscreenElement) {
-        if (de.requestFullscreen) {
-          de.requestFullscreen().catch(() => {});
-        }
-      }
-    } catch (err) {}
-  };
-
-  // 濁点キーの文字状態の連動
+  // 濁点キーの連動
   const updateDakuonKeyLabel = () => {
     const isYRow = ['や','ゆ','よ'].includes(lastChar);
     const dcLabel = document.getElementById("dc");
@@ -368,7 +343,7 @@
     }).join('');
   };
 
-  // ゲームリセット（初期位置）
+  // ゲームリセット
   const resetGame = () => {
     checkDevice();
     clearAllTimers();
@@ -390,7 +365,7 @@
     elMessageLabel.style.color = "#000000";
     elScareImage.classList.remove('shake-animation');
 
-    // 表示物の整理
+    // 表示状態のクリーンアップ
     elMainContest.style.display = "block";
     elFlickKeyboard.style.display = isMobile ? "flex" : "none";
     elModeDesc.textContent = isMobile ? "フリック入力専用" : "キーボード入力専用";
@@ -403,7 +378,6 @@
       const resetBtn = document.createElement("button");
       resetBtn.id = "btn-reset";
       resetBtn.textContent = "リセット";
-      // スマホでは click イベントのみで安全に制御
       resetBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         resetGame();
@@ -416,58 +390,54 @@
     drawDisplay();
   };
 
-  // 「寂静シーケンス」遷移処理 (0.7s仕様)
+  // 「寂静シーケンス」本編遷移アニメーション（タップ後の処理）
   const goTransition = () => {
+    // 1. Androidで何より優先すべきはサウンドリソースの「直タップ時アクティベート」
     initAudio();
-    requestFullScreen();
 
-    // タイトルステージを一瞬（0s）で消去
+    // タイトルステージを非表示にし、ゲームをリセット
     elTitleStage.style.transition = "none";
     elTitleStage.style.opacity = "0";
+    elTitleStage.style.display = "none";
 
-    // ホワイトアウト用スクリーンを一瞬（0s）で白表示
+    // ホワイトアウト開始（一瞬で白にする）
+    elVolumeWarning.style.display = "flex";
     elVolumeWarning.style.transition = "none";
     elVolumeWarning.style.opacity = "1";
 
-    setManagedTimeout(() => {
-      elTitleStage.style.display = "none";
-      resetGame();
+    resetGame();
+    elMainContest.style.transition = "none";
+    elFlickKeyboard.style.transition = "none";
+    elMainContest.style.opacity = "0";
+    elFlickKeyboard.style.opacity = "0";
 
-      // メインゲームの透明度を0にしておく
-      elMainContest.style.transition = "none";
-      elFlickKeyboard.style.transition = "none";
-      elMainContest.style.opacity = "0";
-      elFlickKeyboard.style.opacity = "0";
+    // 0.7秒間、真っ白な静止画面を見せたあと、0.7sかけてフェードイン
+    tm.push(setTimeout(() => {
+      elVolumeWarning.style.transition = "opacity 0.7s ease";
+      elVolumeWarning.style.opacity = "0";
 
-      // 0.7秒間、真っ白な静止画面を見せたあと、0.7sかけてフェードイン
-      setManagedTimeout(() => {
-        elVolumeWarning.style.transition = "opacity 0.7s ease";
-        elVolumeWarning.style.opacity = "0";
+      elMainContest.style.transition = "opacity 0.7s ease";
+      elFlickKeyboard.style.transition = "opacity 0.7s ease";
+      elMainContest.style.opacity = "1";
+      elFlickKeyboard.style.opacity = "1";
 
-        elMainContest.style.transition = "opacity 0.7s ease";
-        elFlickKeyboard.style.transition = "opacity 0.7s ease";
+      // アニメーション完了後に音量警告レイヤーを物理的に消去して指を通す
+      tm.push(setTimeout(() => {
+        elVolumeWarning.style.display = "none";
+      }, 700));
 
-        elMainContest.style.opacity = "1";
-        elFlickKeyboard.style.opacity = "1";
-      }, 700);
-    }, 50);
+    }, 700));
   };
 
-  // イベント登録：タイトルタップ（スマホ・PC両対応、競合・ブロック防止設計）
-  const handleStartTrigger = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    // すでにタイトルが非表示・不活性の場合は動かさない
+  // タイトルのタップ開始判定（安全なclickに統一）
+  elTitleStage.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (elTitleStage.style.display === "none") return;
     goTransition();
-  };
+  });
 
-  // タッチ・クリックの反応を最速かつ確実に「click」へ集約（iOS安全対策）
-  elTitleStage.addEventListener('click', handleStartTrigger);
-
-  // タイピングクリア処理
+  // クリア判定
   const processFinish = () => {
     isFinished = true;
     const finalTime = ((new Date() - startTime) / 1000).toFixed(2);
@@ -484,11 +454,10 @@
     elResultStatus.innerHTML = `<b>クリア！ タイム: ${finalTime}秒</b><br><span style="font-size:0.8rem">${feedback}</span>`;
   };
 
-  // 入力処理（文字判定）
+  // 入力文字の判定
   const handleInputChar = (inputChar) => {
     if (isScared || isFinished) return;
 
-    // 未開始時のスタート判定
     if (!isStarted) {
       const triggerChar = isMobile ? "あ" : "a";
       if (inputChar === triggerChar) {
@@ -505,7 +474,6 @@
     const requiredChar = currentTarget[currentIndex];
 
     if (isMobile) {
-      // モバイル（フリック濁音・半濁音・小書きサポート）
       if (["゛", "゜", "小"].includes(inputChar)) {
         if (!lastChar) {
           triggerScreamer();
@@ -529,7 +497,6 @@
         return;
       }
 
-      // 単音一致判定
       if (inputChar === requiredChar) {
         lastChar = null;
         updateDakuonKeyLabel();
@@ -537,7 +504,6 @@
         drawDisplay();
         if (currentIndex === currentTarget.length) processFinish();
       } else if (dakuonMap[inputChar] === requiredChar || handakuonMap[inputChar] === requiredChar || smallCharMap[inputChar] === requiredChar) {
-        // 次の濁点入力を想定してキーキープ
         lastChar = inputChar;
         updateDakuonKeyLabel();
       } else {
@@ -546,7 +512,6 @@
         triggerScreamer();
       }
     } else {
-      // キーボード
       if (inputChar === requiredChar) {
         currentIndex++;
         drawDisplay();
@@ -557,11 +522,11 @@
     }
   };
 
-  // キーボードイベントハンドラ
+  // キーボード処理
   window.addEventListener('keydown', (ev) => {
     if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey) return;
 
-    // タイトル画面の時、スペースキーで遷移
+    // タイトル画面の時にスペースで開始
     if (elTitleStage.style.display !== "none" && elTitleStage.style.opacity !== "0") {
       if (!isMobile && ev.code === "Space") {
         ev.preventDefault();
@@ -572,7 +537,6 @@
 
     if (isMobile) return;
 
-    // ゲーム中のリセット判定
     if (ev.code === "Space") {
       if (!isScared) {
         ev.preventDefault();
@@ -584,7 +548,7 @@
     handleInputChar(ev.key.toLowerCase());
   });
 
-  // フリックキーボードのHTML構成構築
+  // フリックキー構築
   const buildFlickKeyboard = () => {
     const keys = [
       ['a', 'ka', 'sa'],
@@ -609,7 +573,6 @@
       }</div>`;
     }).join('');
 
-    // モバイルのタッチイベント設定（touchendバグ徹底対策）
     document.querySelectorAll('.flick-key').forEach(el => {
       let startX = 0;
       let startY = 0;
@@ -631,13 +594,13 @@
         const change = ev.changedTouches[0];
         const diffX = change.clientX - startX;
         const diffY = change.clientY - startY;
-        let directionIndex = 0; // デフォルト：タップ
+        let directionIndex = 0;
 
         if (Math.abs(diffX) > 20 || Math.abs(diffY) > 20) {
           if (Math.abs(diffX) > Math.abs(diffY)) {
-            directionIndex = diffX > 0 ? 2 : 4; // 右 : 左
+            directionIndex = diffX > 0 ? 2 : 4;
           } else {
-            directionIndex = diffY > 0 ? 3 : 1; // 下 : 上
+            directionIndex = diffY > 0 ? 3 : 1;
           }
         }
 
@@ -649,7 +612,7 @@
     });
   };
 
-  // タイピング・テキストアニメーション演出（演出制御）
+  // スクリーマ演出のタイピング
   const triggerTypewriter = (text, onComplete) => {
     elMessageLabel.textContent = "";
     let charIndex = 0;
@@ -657,24 +620,23 @@
     function nextChar() {
       if (charIndex < text.length) {
         elMessageLabel.textContent += text.charAt(charIndex++);
-        setManagedTimeout(nextChar, 120);
+        tm.push(setTimeout(nextChar, 120));
       } else {
-        setManagedTimeout(() => {
+        tm.push(setTimeout(() => {
           elMessageLabel.textContent = "";
           if (onComplete) onComplete();
-        }, 2000);
+        }, 2000));
       }
     }
     nextChar();
   };
 
-  // 怖がらせ音声演出
+  // スピーカー咆哮
   const playScreamSound = () => {
     try {
       initAudio();
       const now = audioCtx.currentTime;
 
-      // 1. 低周波鋸歯状波（超重量型ベース音）
       const osc = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
       osc.type = 'sawtooth';
@@ -687,8 +649,7 @@
       osc.start();
       osc.stop(now + 3);
 
-      // 2. ホワイトノイズ（激しい破裂音）
-      const bufferSize = audioCtx.sampleRate * 2; // 2秒
+      const bufferSize = audioCtx.sampleRate * 2;
       const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const outputData = noiseBuffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
@@ -703,11 +664,11 @@
       noiseGain.connect(audioCtx.destination);
       noiseSource.start();
     } catch (e) {
-      console.warn("Audio error", e);
+      console.warn("Audio Error", e);
     }
   };
 
-  // ミス時の演出
+  // 演出発動
   const triggerScreamer = () => {
     isScared = true;
     clearAllTimers();
@@ -724,48 +685,53 @@
       triggerTypewriter("至急対応してください", () => {
         elErrorLabel.style.display = "none";
 
-        setManagedTimeout(() => {
+        tm.push(setTimeout(() => {
           elOverlayScreen.style.backgroundColor = "#000000";
           playScreamSound();
           elScareImage.style.display = "block";
           elScareImage.classList.add('shake-animation');
 
-          setManagedTimeout(() => {
+          tm.push(setTimeout(() => {
             resetGame();
-          }, 6000);
-        }, 2500);
+          }, 6000));
+        }, 2500));
       });
     });
   };
 
-  // 寂静タイムライン
+  // 起動時の寂静（じゃくじょう）シーケンス実行
   const runLaunchSequence = () => {
     checkDevice();
     buildFlickKeyboard();
 
-    setManagedTimeout(() => {
+    // 0.6s 起動時最初の真っ白表示
+    tm.push(setTimeout(() => {
       elVolumeWarning.textContent = "このゲームは音量ありでプレイしてください。";
       elVolumeWarning.style.opacity = "1";
-      elVolumeWarning.style.pointerEvents = "auto";
 
-      setManagedTimeout(() => {
+      // 1.1s（inの時間込みで1.8s後）表示維持
+      tm.push(setTimeout(() => {
         elVolumeWarning.style.opacity = "0";
 
-        setManagedTimeout(() => {
+        // 0.7s フェードアウト
+        tm.push(setTimeout(() => {
           elVolumeWarning.textContent = "";
-          
-          setManagedTimeout(() => {
+          // 物理干渉を防ぐためここで音量警告レイヤーを完全非表示にする
+          elVolumeWarning.style.display = "none";
+
+          // さらに0.7s純白の静止をおいてからタイトルを表示
+          tm.push(setTimeout(() => {
             elTitleStage.style.display = "block";
-            setManagedTimeout(() => {
+            tm.push(setTimeout(() => {
               elTitleStage.style.opacity = "1";
-            }, 50);
-          }, 700);
+            }, 50));
+          }, 700));
 
-        }, 700);
+        }, 700));
 
-      }, 1800);
+      }, 1800));
 
-    }, 600);
+    }, 600));
   };
 
   window.addEventListener('DOMContentLoaded', runLaunchSequence);
