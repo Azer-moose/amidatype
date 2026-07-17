@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>とにかく早く打て</title>
+<style>
+html,body{height:100dvh;overflow:hidden;position:fixed;width:100%}
+body{font-family:sans-serif;background:#fff;color:#000;display:flex;flex-direction:column;justify-content:space-between;align-items:center;margin:0;box-sizing:border-box;padding:10px 10px 20px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.x{background:#f0f0f0;padding:15px;border:2px solid #000;box-shadow:4px 4px 0px #000;text-align:center;max-width:500px;width:90%;margin:auto 0;cursor:pointer}
+h1{font-size:1rem;margin-bottom:10px;letter-spacing:2px;font-weight:bold}
+.w{font-size:1.8rem;font-weight:bold;margin-bottom:5px;letter-spacing:2px}
+.k{font-size:0.8rem;color:#666;letter-spacing:1px;margin-bottom:10px}
+.r{font-size:1.3rem;font-family:monospace;letter-spacing:2px;margin-bottom:10px;background:#fff;padding:8px;border:1px solid #000;word-break:break-all}
+.p{color:#888}.u{font-weight:bold}
+.s{font-size:0.8rem;min-height:30px;margin-bottom:8px;letter-spacing:1px;line-height:1.4}
+button{background:#e0e0e0;border:2px solid #000;padding:5px 15px;font-size:0.75rem;cursor:pointer;box-shadow:2px 2px 0px #000;font-weight:bold}
+button:active{transform:translate(2px,2px);box-shadow:none}
+#flick-keyboard{width:100%;max-width:450px;background:#ccc;border:2px solid #000;padding:8px 8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:5px;z-index:10;flex-shrink:0}
+.flick-row{display:flex;justify-content:center;gap:5px}
+.flick-key{flex:1;background:#fdfdfd;border:2px solid #000;height:48px;display:flex;justify-content:center;align-items:center;font-size:1rem;position:relative;cursor:pointer;box-shadow:2px 2px 0px #000;font-weight:bold}
+.flick-key:active,.flick-key.touched{background:#000;color:#fff;box-shadow:none;transform:translate(2px,2px)}
+.flick-key .guide{position:absolute;font-size:0.55rem;color:#555;pointer-events:none}
+.flick-key:active .guide,.flick-key.touched .guide{color:#aaa}
+.g-top{top:2px}.g-right{right:4px;top:50%;transform:translateY(-50%)}.g-bottom{bottom:2px}.g-left{left:4px;top:50%;transform:translateY(-50%)}
+#z{display:none;position:fixed;inset:0;background:#fff;z-index:9999;justify-content:center;align-items:center;flex-direction:column}
+#e{display:none;color:#c00;font-size:15vw;font-weight:bold;letter-spacing:10px;margin-bottom:10px;z-index:10001;position:relative}
+#m{font-size:1.6rem;font-weight:bold;letter-spacing:2px;min-height:2.5rem;z-index:10001;position:relative;text-align:center;padding:0 20px}
+.fa{animation:hf .25s infinite alternate}
+@keyframes hf{0%,100%{opacity:1}10%{opacity:.8}11%,14%{opacity:.1}15%,55%{opacity:1}56%,59%{opacity:0}60%{opacity:.9}}
+#g{display:none;width:100vw;height:100vh;object-fit:cover;transform:scale(1.15);position:absolute;top:0;left:0;z-index:10000}
+.sa{animation:us .7s linear forwards}
+@keyframes us{0%,100%{transform:scale(1.15) translate(0,0)}2.5%,7.5%,12.5%,17.5%,22.5%,27.5%,32.5%,37.5%,42.5%,47.5%,52.5%,57.5%,62.5%,67.5%,72.5%,77.5%,82.5%,87.5%,92.5%,97.5%{transform:scale(1.15) translate(-18px,-18px)}5%,10%,15%,20%,25%,30%,35%,40%,45%,50%,55%,60%,65%,70%,75%,80%,85%,90%,95%,99%{transform:scale(1.15) translate(18px,18px)}}
+</style>
+</head>
+<body>
+
+<div id="fade-overlay" style="position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity 1.5s ease;z-index:999"></div>
+
+<div class="x" id="title-screen">
+  <h1>タイピングレース</h1>
+  <div class="w">～阿弥陀如来～</div>
+  <div class="s" style="margin-top:15px;font-weight:bold">画面をタップしてください</div>
+</div>
+
+<div class="x" id="mc" style="display:none;cursor:default">
+  <h1>とにかく早く打て</h1>
+  <div class="w">阿弥陀如来</div>
+  <div class="k">フリック入力専用</div>
+  <div class="r" id="rd"></div>
+  <div class="s" id="rsd">「あ」をフリックまたはタップして開始</div>
+  <button id="rbn">リセット</button>
+</div>
+
+<div id="flick-keyboard" style="display:none">
+  <div class="flick-row">
+    <div class="flick-key" data-key="a">あ<span class="guide g-top">う</span><span class="guide g-right">え</span><span class="guide g-bottom">お</span><span class="guide g-left">い</span></div>
+    <div class="flick-key" data-key="ka">か<span class="guide g-top">く</span><span class="guide g-right">け</span><span class="guide g-bottom">こ</span><span class="guide g-left">き</span></div>
+    <div class="flick-key" data-key="sa">さ<span class="guide g-top">す</span><span class="guide g-right">せ</span><span class="guide g-bottom">そ</span><span class="guide g-left">し</span></div>
+  </div>
+  <div class="flick-row">
+    <div class="flick-key" data-key="ta">た<span class="guide g-top">つ</span><span class="guide g-right">て</span><span class="guide g-bottom">と</span><span class="guide g-left">ち</span></div>
+    <div class="flick-key" data-key="na">な<span class="guide g-top">ぬ</span><span class="guide g-right">ね</span><span class="guide g-bottom">の</span><span class="guide g-left">に</span></div>
+    <div class="flick-key" data-key="ha">は<span class="guide g-top">ふ</span><span class="guide g-right">へ</span><span class="guide g-bottom">ほ</span><span class="guide g-left">ひ</span></div>
+  </div>
+  <div class="flick-row">
+    <div class="flick-key" data-key="ma">ま<span class="guide g-top">む</span><span class="guide g-right">め</span><span class="guide g-bottom">も</span><span class="guide g-left">み</span></div>
+    <div class="flick-key" data-key="ya">や<span class="guide g-top">ゆ</span><span class="guide g-right">」</span><span class="guide g-bottom">よ</span><span class="guide g-left">「</span></div>
+    <div class="flick-key" data-key="ra">ら<span class="guide g-top">る</span><span class="guide g-right">れ</span><span class="guide g-bottom">ろ</span><span class="guide g-left">り</span></div>
+  </div>
+  <div class="flick-row">
+    <div class="flick-key" data-key="daku"><span id="daku-center">゛</span><span class="guide g-top">小</span><span class="guide g-right">゜</span><span class="guide g-left">゛</span></div>
+    <div class="flick-key" data-key="wa">わ<span class="guide g-top">ん</span><span class="guide g-right">ー</span><span class="guide g-left">を</span></div>
+    <div class="flick-key" style="visibility:hidden"></div>
+  </div>
+</div>
+
+<div id="z">
+  <div id="e">警告</div>
+  <div id="m"></div>
+  <img src="https://stickershop.line-scdn.net/stickershop/v1/product/27284783/LINEStorePC/main.png" alt="" id="g">
+</div>
+
+<script>
+const q="あみだにょらい",$=i=>document.getElementById(i),D={"か":"が","き":"ぎ","く":"ぐ","け":"げ","こ":"ご","さ":"ざ","し":"じ","す":"ず","せ":"ぜ","そ":"ぞ","た":"だ","ち":"ぢ","つ":"づ","て":"で","と":"ど","は":"ば","ひ":"び","ふ":"ぶ","へ":"べ","ほ":"ぼ"},H={"は":"ぱ","ひ":"ぴ","ふ":"ぷ","へ":"ぺ","ほ":"ぼ"},S={"つ":"っ","あ":"ぁ","い":"ぃ","う":"ぅ","え":"ぇ","お":"ぉ","や":"ゃ","ゆ":"ゅ","よ":"ょ","わ":"ゎ"};
+let x=0,st=0,fn=0,sc=0,ts=0,p=null,tm=[],audioCtx=null;
+
+const initAudio=()=>{
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+};
+
+const reqFS=()=>{
+  const e=document.documentElement;
+  if(!document.fullscreenElement&&!document.webkitFullscreenElement) (e.requestFullscreen?e.requestFullscreen():e.webkitRequestFullscreen&&e.webkitRequestFullscreen()).catch(()=>{});
+};
+
+const updDK=()=>{
+  const c=$('daku-center'),isY=['や','ゆ','よ'].includes(p);
+  if(c) c.textContent=isY?'小':'゛';
+  Object.assign(keyMap.daku,{center:isY?'小':'゛',right:isY?'小':'゜',left:isY?'小':'゛'});
+};
+
+const dr=()=>$('rd').innerHTML=[...q].map((c,i)=>`<span class="${i<x?'p':'u'}">${c}</span>`).join('');
+
+const reset=()=>{
+  x=st=fn=sc=0;ts=p=null;updDK();tm.forEach(clearTimeout);tm=[];
+  $('m').textContent="";$('z').style.display=$('g').style.display=$('e').style.display="none";
+  $('g').classList.remove('sa');$('e').classList.remove('fa');
+  $('mc').style.display="block";$('flick-keyboard').style.display="flex";
+  $('rsd').textContent="「あ」をフリックまたはタップして開始";$('rsd').style.color="#000";dr();
+};
+
+const start=()=>{
+  reqFS();initAudio();$('fade-overlay').style.opacity='1';
+  setTimeout(()=>{
+    $('title-screen').style.display="none";reset();
+    setTimeout(()=>$('fade-overlay').style.opacity='0',50);
+  },1500);
+};
+['click','touchstart'].forEach(e=>$('title-screen').addEventListener(e,start));
+
+const fin=()=>{
+  fn=1;let d=((new Date()-ts)/1000).toFixed(2);
+  $('rsd').innerHTML=`<b>クリア！ タイム: ${d}秒</b><br><span style="font-size:0.8rem">${d<1?"1秒未満…！？人間業ではありません。":d<3?"神速のタイパーです！素晴らしい。":d<5.5?"なかなかの腕前ですね。":"もう少し速く打てそうです。"}</span>`;
+};
+
+const handleInput=(c)=>{
+  if(sc||fn)return;initAudio();reqFS();
+  if(!st){if(c==="あ"){st=1;ts=new Date();x=1;$('rsd').textContent="計測中...";dr()} return}
+  let t=q[x];
+  if(["゛","゜","小"].includes(c)){
+    if(!p){err();return}
+    let cb=c==="゛"?D[p]:c==="゜"?H[p]:S[p];
+    p=null;updDK();
+    if(cb===t){x++;dr();if(x===q.length)fin()}else err();
+    return;
+  }
+  if(c===t){p=null;updDK();x++;dr();if(x===q.length)fin()}
+  else if(D[c]===t||H[c]===t||S[c]===t){p=c;updDK()}
+  else{p=null;updDK();err()}
+};
+
+const keyMap={
+  a:{center:'あ',top:'う',right:'え',bottom:'お',left:'い'},ka:{center:'か',top:'く',right:'け',bottom:'こ',left:'き'},sa:{center:'さ',top:'す',right:'せ',bottom:'そ',left:'し'},
+  ta:{center:'た',top:'つ',right:'て',bottom:'と',left:'ち'},na:{center:'な',top:'ぬ',right:'ね',bottom:'の',left:'に'},ha:{center:'は',top:'ふ',right:'へ',bottom:'ほ',left:'ひ'},
+  ma:{center:'ま',top:'む',right:'め',bottom:'も',left:'み'},ya:{center:'や',top:'ゆ',right:'」',bottom:'よ',left:'「'},ra:{center:'ら',top:'る',right:'れ',bottom:'ろ',left:'り'},
+  wa:{center:'わ',top:'ん',right:'ー',bottom:'',left:'を'},daku:{center:'゛',top:'小',right:'゜',bottom:'',left:'゛'}
+};
+
+document.querySelectorAll('.flick-key').forEach(el=>{
+  let sx=0,sy=0,k=el.getAttribute('data-key');if(!k)return;
+  el.addEventListener('touchstart',e=>{if(sc||fn)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;el.classList.add('touched')},{passive:true});
+  el.addEventListener('touchend',e=>{
+    if(sc||fn)return;el.classList.remove('touched');
+    let dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy,dir='center';
+    if(Math.abs(dx)>15||Math.abs(dy)>15)dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'bottom':'top');
+    if(keyMap[k]&&keyMap[k][dir])handleInput(keyMap[k][dir]);
+  });
+});
+
+const tp=(t,cb)=>{
+  $('m').textContent="";let i=0;
+  (function step(){
+    if(i<t.length){$('m').textContent+=t.charAt(i++);tm.push(setTimeout(step,120))}
+    else tm.push(setTimeout(()=>{$('m').textContent="";if(cb)cb()},2000));
+  })();
+};
+
+const playHorrorSound=()=>{
+  try{
+    initAudio();let o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;
+    o.type='sawtooth';o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(20,t+3);
+    g.gain.setValueAtTime(2,t);g.gain.linearRampToValueAtTime(0,t+3);
+    o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(t+3);
+    let s=audioCtx.sampleRate*2,b=audioCtx.createBuffer(1,s,audioCtx.sampleRate),d=b.getChannelData(0);
+    for(let i=0;i<s;i++)d[i]=Math.random()*2-1;
+    let n=audioCtx.createBufferSource(),ng=audioCtx.createGain();n.buffer=b;
+    ng.gain.setValueAtTime(0.8,t);ng.gain.linearRampToValueAtTime(0,t+2);
+    n.connect(ng);ng.connect(audioCtx.destination);n.start();
+  }catch(e){}
+};
+
+const err=()=>{
+  sc=1;$('flick-keyboard').style.display=$('mc').style.display="none";
+  $('z').style.display="flex";$('e').style.display="block";$('e').classList.add('fa');
+  tp("位置情報の漏洩を確認",()=>tp("至急対応してください",()=>{
+    $('e').style.display="none";$('e').classList.remove('fa');
+    tm.push(setTimeout(()=>{
+      playHorrorSound();$('g').style.display="block";$('g').classList.add('sa');
+      tm.push(setTimeout(reset,6000));
+    },2500));
+  }));
+};
+$('rbn').addEventListener('click',reset);
+</script>
+</body>
+</html>
