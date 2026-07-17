@@ -4,7 +4,18 @@ K={a:['あ','う','え','お','い'],ka:['か','く','け','こ','き'],sa:['さ
 x=0,st=0,fn=0,sc=0,T=0,p=null,tm=[],A=null,I=false;
 const C=()=>{I=/iphone|ipad|ipod|android/i.test(navigator.userAgent);ta.textContent=I?"画面をタップしてください":"スペースキーを入力してください"};
 const init=()=>{try{if(!A)A=new(window.AudioContext||webkitAudioContext)();if(A&&A.state==='suspended')A.resume()}catch(e){}};
-const req=()=>{try{const e=document.documentElement;if(!document.fullscreenElement&&!document.webkitFullscreenElement){if(e.requestFullscreen){e.requestFullscreen().catch(()=>{})}else if(e.webkitRequestFullscreen){e.webkitRequestFullscreen()}}}catch(err){}};
+
+// 各種ブラウザの全画面表示に対応できるようにプレフィックスの網羅性を強化
+const req=()=>{
+  try{
+    const e=document.documentElement;
+    if(!document.fullscreenElement&&!document.webkitFullscreenElement&&!document.mozFullScreenElement&&!document.msFullscreenElement){
+      const f=e.requestFullscreen||e.webkitRequestFullscreen||e.mozRequestFullScreen||e.msRequestFullscreen;
+      if(f) f.call(e).catch(()=>{});
+    }
+  }catch(err){}
+};
+
 const upd=()=>{const isY=['や','ゆ','よ'].includes(p);if(window.dc)dc.textContent=isY?'小':'゛';K.daku[0]=isY?'小':'゛';K.daku[2]=isY?'小':'゜';K.daku[4]=isY?'小':'゛';};
 const dr=()=>{const arr=[...(I?qJ:qE)];rd.innerHTML=arr.map((c,i)=>`<span class="${i<x?'p':'u'}">${c}</span>`).join('')};
 const R=()=>{C();x=st=fn=sc=0;T=p=null;if(I)upd();tm.forEach(clearTimeout);tm=[];m.textContent="";z.style.display=g.style.display=e.style.display="none";z.style.backgroundColor="#fff";m.style.color="#000";g.classList.remove('sa');mc.style.display="block";fk.style.display=I?"flex":"none";md.textContent=I?"フリック入力専用":"キーボード入力専用";rs.textContent=I?"「あ」をフリックまたはタップして開始":"「a」キーを入力して開始";rs.style.color="#000";rc.innerHTML=I?'<button id="rbn">リセット</button>':'<div style="font-size:0.8rem;color:#666;font-weight:bold;margin-top:10px;">[Space] キーを押してリセット</div>';
@@ -16,7 +27,7 @@ const GO=()=>{
   ts.style.opacity=0;
   fo.style.transition="none";
   fo.style.opacity=1;
-  fo.style.pointerEvents="auto"; // 演出中は操作をガード
+  fo.style.pointerEvents="auto";
   setTimeout(()=>{
     ts.style.display="none";
     R();
@@ -25,7 +36,7 @@ const GO=()=>{
     setTimeout(()=>{
       fo.style.transition="opacity .7s ease";
       fo.style.opacity=0;
-      fo.style.pointerEvents="none"; // 終了したら操作スルーに戻す
+      fo.style.pointerEvents="none";
       mc.style.transition="opacity .7s ease";
       fk.style.transition="opacity .7s ease";
       mc.style.opacity=1;
@@ -34,16 +45,15 @@ const GO=()=>{
   },50);
 };
 
-// 画面全体のどこをタップしても開始できるようにし、二重発火を完全に防止する処理
+// ブラウザの「ユーザー操作認定」を100%通過させるため、clickに統一して安定化
 const mainStart=(ev)=>{
   if(ts.style.display!=="none"&&ts.style.opacity!=="0"){
     ev.preventDefault();
-    // イベントが発生した瞬間にリスナーを削除して重複実行を完全に防ぐ
-    ['click','touchstart'].forEach(e=>window.removeEventListener(e,mainStart));
+    window.removeEventListener('click',mainStart);
     GO();
   }
 };
-['click','touchstart'].forEach(ev=>window.addEventListener(ev,mainStart,{passive:false}));
+window.addEventListener('click',mainStart);
 
 const fin=()=>{fn=1;let d=((new Date()-T)/1000).toFixed(2);rs.innerHTML=`<b>クリア！ タイム: ${d}秒</b><br><span style="font-size:0.8rem">${d<1?"1秒未満…！？人間業ではありません。":d<3?"神速のタイパーです！素晴らしい。":d<5.5?"なかなかの腕前ですね。":"もう少し速く打てそうです。"}</span>`};
 const handle=(c)=>{if(sc||fn)return;init();req();if(!st){if((I&&c==="あ")||(!I&&c==="a")){st=1;T=new Date();x=1;rs.textContent="計測中...";dr()}return}const q=I?qJ:qE;let t=q[x];if(I){if(["゛","゜","小"].includes(c)){if(!p){err();return}let cb=c==="゛"?D[p]:c==="゜"?H[p]:S[p];p=null;upd();if(cb===t){x++;dr();if(x===q.length)fin()}else err();return}if(c===t){p=null;upd();x++;dr();if(x===q.length)fin()}else if(D[c]===t||H[c]===t||S[c]===t){p=c;upd()}else{p=null;upd();err()}}else{if(c===t){x++;dr();if(x===q.length)fin()}else err()}};
@@ -53,7 +63,7 @@ onkeydown=ev=>{
   if(ts.style.display!=="none"&&ts.style.opacity!=="0"){
     if(!I&&ev.code==="Space"){
       ev.preventDefault();
-      ['click','touchstart'].forEach(e=>window.removeEventListener(e,mainStart));
+      window.removeEventListener('click',mainStart);
       GO();
     }
     return
