@@ -19,7 +19,7 @@
       color: #000000;
       display: flex;
       flex-direction: column;
-      justify-content: center; /* space-betweenからcenterに変更し、縦伸びを防止 */
+      justify-content: center;
       align-items: center;
       margin: 0;
       box-sizing: border-box;
@@ -29,45 +29,45 @@
       user-select: none;
       -webkit-user-select: none;
       transition: background-color 0.3s ease;
-      gap: 15px; /* 要素同士の適度な一体感を作る */
+      gap: 15px;
     }
 
-    /* パネル共通（スマホ・PC両方で縦をコンパクトに） */
+    /* パネル共通（PC版と同じ比率・サイズ感に統一） */
     .panel {
       background-color: #f0f0f0;
-      padding: 15px 20px;
+      padding: 20px;
       border: 2px solid #000000;
       box-shadow: 4px 4px 0px #000000;
       text-align: center;
-      max-width: 450px;
+      max-width: 500px;
       width: 90%;
       box-sizing: border-box;
     }
     h1 {
-      font-size: 1.0rem;
-      margin: 0 0 5px;
+      font-size: 1.1rem;
+      margin: 0 0 10px;
       letter-spacing: 2px;
       font-weight: bold;
     }
     .sub-title {
-      font-size: 1.6rem;
+      font-size: 1.8rem;
       font-weight: bold;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       letter-spacing: 2px;
     }
     .device-desc {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: #666666;
       letter-spacing: 1px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .word-display {
-      font-size: 1.3rem;
+      font-size: 1.4rem;
       font-family: monospace;
       letter-spacing: 2px;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
       background-color: #ffffff;
-      padding: 8px;
+      padding: 10px;
       border: 1px solid #000000;
       word-break: break-all;
     }
@@ -75,8 +75,8 @@
     .upcoming-char { font-weight: bold; }
     .status-text {
       font-size: 0.8rem;
-      min-height: 24px;
-      margin-bottom: 5px;
+      min-height: 30px;
+      margin-bottom: 10px;
       letter-spacing: 1px;
       line-height: 1.4;
     }
@@ -85,8 +85,8 @@
     button {
       background-color: #e0e0e0;
       border: 2px solid #000000;
-      padding: 6px 16px;
-      font-size: 0.75rem;
+      padding: 8px 20px;
+      font-size: 0.8rem;
       cursor: pointer;
       box-shadow: 2px 2px 0px #000000;
       font-weight: bold;
@@ -97,34 +97,34 @@
       box-shadow: none;
     }
 
-    /* フリックキーボード（高さを少し抑えてコンパクトに） */
+    /* フリックキーボード */
     #flick-keyboard {
       width: 100%;
-      max-width: 410px;
+      max-width: 450px;
       background-color: #cccccc;
       border: 2px solid #000000;
-      padding: 6px;
+      padding: 8px 8px 10px;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 5px;
       z-index: 10;
       flex-shrink: 0;
     }
     .flick-row {
       display: flex;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
     }
     .flick-key {
       flex: 1;
       background-color: #fdfdfd;
       border: 2px solid #000000;
-      height: 42px; /* キーの高さを少し引き締め */
+      height: 48px;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 0.95rem;
+      font-size: 1rem;
       position: relative;
       cursor: pointer;
       box-shadow: 2px 2px 0px #000000;
@@ -139,17 +139,17 @@
     }
     .flick-key .guide {
       position: absolute;
-      font-size: 0.5rem;
+      font-size: 0.55rem;
       color: #555555;
       pointer-events: none;
     }
     .flick-key:active .guide, .flick-key.touched .guide {
       color: #aaaaaa;
     }
-    .t { top: 1px; }
-    .r { right: 3px; top: 50%; transform: translateY(-50%); }
-    .b { bottom: 1px; }
-    .l { left: 3px; top: 50%; transform: translateY(-50%); }
+    .t { top: 2px; }
+    .r { right: 4px; top: 50%; transform: translateY(-50%); }
+    .b { bottom: 2px; }
+    .l { left: 4px; top: 50%; transform: translateY(-50%); }
 
     /* 演出・スクリーマレイヤー */
     #overlay-screen {
@@ -293,8 +293,6 @@
   let tm = [];
   let audioCtx = null;
   let isMobile = false;
-  
-  // 【最重要】寂静シーケンス中（タイトルが100%表示されきる前）の先行入力を完全にブロックする安全キー
   let isInputAllowed = false;
 
   // タイマークリア処理
@@ -411,18 +409,15 @@
 
   // 「寂静シーケンス」本編遷移
   const goTransition = () => {
-    // 完全にタイトルフェードインが完了している場合のみ、開始を認可
     if (!isInputAllowed) return;
 
     initAudio();
     requestFullScreen();
 
-    // タイトルステージを即時非表示
     elTitleStage.style.transition = "none";
     elTitleStage.style.opacity = "0";
     elTitleStage.style.display = "none";
 
-    // ホワイトアウト開始
     elVolumeWarning.style.display = "flex";
     elVolumeWarning.style.transition = "none";
     elVolumeWarning.style.opacity = "1";
@@ -546,7 +541,6 @@
   window.addEventListener('keydown', (ev) => {
     if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     
-    // ロック中（音量警告表示時など）はすべてのキー動作をシャットアウト
     if (!isInputAllowed) {
       ev.preventDefault();
       return;
@@ -726,7 +720,7 @@
 
   // 起動時の寂静シーケンス実行
   const runLaunchSequence = () => {
-    isInputAllowed = false; // 読み込み開始時はすべての入力をロック
+    isInputAllowed = false;
     checkDevice();
     buildFlickKeyboard();
 
@@ -746,7 +740,6 @@
             tm.push(setTimeout(() => {
               elTitleStage.style.opacity = "1";
               
-              // タイトルのフェードインが100%完了した「ここ」で初めて入力を受け付ける（完璧なクラッシュ対策）
               tm.push(setTimeout(() => {
                 isInputAllowed = true;
               }, 700));
